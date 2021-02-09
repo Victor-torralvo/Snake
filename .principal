@@ -20,7 +20,7 @@ class TileMap:
         'tiles' é resposavel por armazenar todos os 'tiles' colisiveis do mapa.
         """
 
-        self.data_tmx = pytmx.load_pygame('TileSet/Fase01.tmx', pixelalpha=True)
+        self.data_tmx = pytmx.load_pygame('Fase01.tmx', pixelalpha=True)#O arquivo contendo o mapa deve estar na mesma pasta do '.main'
         self.width = self.data_tmx.width * self.data_tmx.tilewidth
         self.height = self.data_tmx.height * self.data_tmx.tileheight
         self.tiles = []
