@@ -20,7 +20,7 @@ class TileMap:
         'tiles' é resposavel por armazenar todos os 'tiles' colisiveis do mapa.
         """
 
-        self.data_tmx = pytmx.load_pygame('Fase01.tmx', pixelalpha=True)#O arquivo contendo o mapa deve estar na mesma pasta do '.main'
+        self.data_tmx = pytmx.load_pygame('TileSet/Fase01.tmx', pixelalpha=True)
         self.width = self.data_tmx.width * self.data_tmx.tilewidth
         self.height = self.data_tmx.height * self.data_tmx.tileheight
         self.tiles = []
@@ -29,77 +29,87 @@ class TileMap:
         """Função responsavel por organizar e posicionar os 'tileds' em uma 'surface',
         que será a representação grafica do mapa"""
 
-        for layer in self.data_tmx.visible_layers: #Acessa cada layer visivel no mapa.
-            if isinstance(layer, pytmx.TiledTileLayer): #Informa se o layer é uma instancia de TiledTileLayer
-                for x, y, gid in layer: #Acessa a posição x e y do 'tile', além do seu código de identificação.
-                    tile = self.data_tmx.get_tile_image_by_gid(gid) #Procura a imagem do tile referente ao gid informado.
-                    if tile:#Avalia se um tile foi encontrado.
+        for layer in self.data_tmx.visible_layers:
+            if isinstance(layer, pytmx.TiledTileLayer):
+                for x, y, gid in layer:
+                    tile = self.data_tmx.get_tile_image_by_gid(gid)
+                    if tile:
                         surface.blit(tile, (x * self.data_tmx.tilewidth,
                                             y * self.data_tmx.tileheight))
-                        #desenha a imagem do 'tile' em um 'surface'.
 
                         prop = self.data_tmx.get_tile_properties_by_gid(gid)
-                        """armazena todas as propridades dos tileds"""
                         if prop != None:
-                            "Avalia se o tiles possui alguma propriedade"
                             if 'Wall' in prop.keys():
-                                "Avalia se o tiled possui a propriedade 'Wall' e se a mesma é True"
                                 if prop['Wall']:
                                     self.tiles.append(pygame.Rect(x * self.data_tmx.tilewidth,
                                                                   y * self.data_tmx.tileheight,
                                                                   self.data_tmx.tilewidth,self.data_tmx.tileheight))
-                                    "Adiciona o 'tiled' a lista de tiles da classe"
 
     def make(self):
-        #Função que deve ser usada para criar e gerar o mapa.
-        temp_surf = pygame.Surface((self.width,self.height))#Cria uma suface que será usada para desenhar o mapa
+        """Retorna uma surface com o todos os tiles desenhados"""
+        temp_surf = pygame.Surface((self.width,self.height))
         self._render(temp_surf)
         return temp_surf
 
-class Player: #Classe da 'Snake'
+class Snake:
     def __init__(self):
-        self.fruits = 3 #Quantas frutas a mesma ja comeu
-        self.displacement = [0, 0]#VElocidade da snake e direçao
+        """
+        Defini o tamanho de cada segmento da snake, número de segmentos e suas repectivas posições
+        Quatidde de frutas digeridas e também a velocidade de movimento
+        A variavel 'displacement' armazena a posição atual da cabeça da cobra que é usada para definir a posição resto
+        do corpo.
+        """
+        self.fruits = 3
+        self.displacement = [0, 0]
         self.velocity = 6
-        self.snake = [(300, 150)]#corpo da snake que é um conjunto de posições
-        self.size = [16,16]#tamanho dos gomos do corpo da cobra
-
-    def collide_test(self, tiles, rect):
-        """Função que controla as colisões da cobra, recebe a lista de tiles e a primeira posição da cobra"""
-        temp_tiles = []#tiles que colidiram com a 'snake'
-        for tile in tiles:
-            if rect.colliderect(tile):#Avalia a colisão de cada tile com o rect do player.
-                temp_tiles.append(tile)
-        return temp_tiles #retorna a lista de colisões
-
-    def add_snake(self):#Adiciona um novo gomo a cobra
-        if len(self.snake) < self.fruits:# se o tamanho da cobra for menor que o número de frutas ele adiciona um novo gomo.
+        self.snake = [(300, 150)]
+        self.size = [16,16]
+    def add_snake(self):
+        """
+        Adiciona um novo segmento ao fim do corpo da cobra com base no número de frutas digeridas.
+        """
+        if len(self.snake) < self.fruits:
             self.snake.append((0,0))
 
-    def moviment(self, tiles):#Movimenta a cobra e analisa as colisões com os tiles do mapa.
-        rect = pygame.Rect(self.snake[0][0], self.snake[0][1], self.size[0], self.size[1]) #'Cabeça da cobra'
+    def collide_test(self, tiles, rect):
+        """#Função que controla as colisões da cobra, recebe a lista de tiles e a primeira posição da cobra"""
+        temp_tiles = []
+        for tile in tiles:
+            if rect.colliderect(tile):
+                temp_tiles.append(tile)
+        return temp_tiles
 
-        rect.x += self.displacement[0]#move a cobra no eixo X.
+    def moviment(self, tiles):
+        """
+        Atualiza a posição da cabeça da 'snake' e controla as colisões com paredes dentro do mapa.
+        Apos ser definida a posição da cabeça as posição de cada segmento do corpo será atulizada recebendo o valor da posição antecessor.
+        """
+        rect = pygame.Rect(self.snake[0][0], self.snake[0][1], self.size[0], self.size[1])
 
-        for tile in self.collide_test(tiles, rect):#acessa cada elemento da lista de colisões,caso haja
-            if self.displacement[0] > 0 :#Avalia em qual direção a cobra estava quando colidio com tiled
-                rect.right = tile.left #redefine a posição do snake
+        rect.x += self.displacement[0]
+
+        for tile in self.collide_test(tiles, rect):
+            if self.displacement[0] > 0:
+                rect.right = tile.left
             elif self.displacement[0] < 0:
                 rect.left = tile.right
 
-        rect.y += self.displacement[1]#move a cobra no eixo y.
-        for tile in self.collide_test(tiles, rect):#acessa cada elemento da lista de colisões,caso haja
-            if self.displacement[1] > 0:#Avalia em qual direção a cobra estava quando colidio com tiled
-                rect.bottom = tile.top#redefine a posição do snake
+        rect.y += self.displacement[1]
+        for tile in self.collide_test(tiles, rect):
+            if self.displacement[1] > 0:
+                rect.bottom = tile.top
             elif self.displacement[1] < 0:
                 rect.top = tile.bottom
 
-        self.snake[0] = rect.x, rect.y #Adiciona a nova posição a snake
+        self.snake[0] = rect.x, rect.y
 
-        for i in range(len(self.snake) - 1, 0, -1):#atualiza todos os gomos da snake
+        for i in range(len(self.snake) - 1, 0, -1):#Atualiza a posição da cobra começando do fim
             self.snake[i] =  self.snake[i - 1][0], self.snake[i - 1][1]
 
-    def direction(self):#Controla a direção da snake
+    def direction(self):
+        """
+        Controla a direção e o deslocamento da 'snake', isso e feito controlando os eventos de teclado.
+        """
         key = pygame.key.get_pressed()
 
         if key[pygame.K_w]:
@@ -117,82 +127,118 @@ class Player: #Classe da 'Snake'
             self.displacement[0] = -self.velocity
             self.displacement[1] = 0
 
-    def update(self, tiles):#Atualiza todas as funções da snake
+    def update(self, tiles):
+        """
+        Controla a chamda de funções da snake a cada frame.
+        """
         self.add_snake()
         self.direction()
         self.moviment(tiles)
 
 
-class Fruit:#Frutas que apareceram no mapa
+class Fruit:
+    """
+    Cria uma fruta que que aparecera aleatoriamento no mapa, recebe os parametros 'x' e 'y' que representão as dimenções
+    da janela. Possui um 'pos' que e gerada aleatoriamente e um rect que representa o 'hitbox' da fruta, além de uma
+    cor que será usada quando a fruta for desenhada na tela.
+     OBS: AS FRUTAS SÃO GERADAS DE FORMA ALEATORIA DENTRO DAS DIMENÇÕES DA TELA, NÃO SENDO IMPEDIDAS DE SEREM CRIADAS
+     ENCIMA DE OUTRAS ESTRUTURAS COMO AS PAREDES.
+    """
     def __init__(self, x, y):
-        self.pos = randint(16, x - 16), randint(16, y - 16)#cira uma posição aleatoria para a fruta
-        self.size = (16, 16)#tamanho da fruta
-        self.color = 255, 50, 50 #cor da fruta
+        self.pos = randint(16, x - 16), randint(16, y - 16)
+        self.size = (16, 16)
+        self.color = 255, 50, 50
         self.rect = pygame.Rect(*self.pos, *self.size)
 
 
 class Game:
+    """"
+    Gerencia a janela do jogo, assim como todas das regras do jogo e também é encarregado de desenhar cada elemento na
+    tela.
+    """
     def __init__(self):
-        self.screen_size = [1280,960]#Dimensão da janela(sofrerá alteração para variar de acordo com o mapa da fase
-        self.screen = pygame.display.set_mode(self.screen_size)#Cria uma janela
-        self.elements() #Cria todos elementos do jogo
-        self.time = pygame.time.Clock() #Controla o fps do jogo
-        self.game_loop = True #Controla o loop de execução do jogo
+        """
+        Aqui são definidos as dimensões da janela e cria uma tela de exibição que será usada para desenhar cada elemento
+        do jogo. Também seram chamadas algumas funções importantes como 'elements' que gera cada elemento do jogo,
+        'time' que controla o número de frames que o jogo terá e 'game_loop' que controla o loop de execução do jogo.
+        """
+        self.screen_size = [1280,960]
+        self.screen = pygame.display.set_mode(self.screen_size)
+        self.elements()
+        self.time = pygame.time.Clock()
+        self.game_loop = True
 
     def elements(self):
-        self.player = Player()#Cria o objeto player
-        self.map = TileMap()#Cria o objeto map
-        self.map_image = self.map.make() #Cria a imagem do map
-        self.fruits = [] #Armazena as frutas espalhadas pelo mapa
+        """
+        Gera cada elemento presente no jogo: 'snake', 'map', 'map_image'
+        OBG: 'MAP_IMAGE' É REPRESENTAÇÃO DO MAPA EM FORMA DE IMAGEM.
+            E 'FRUITS' ARMAZENA CADA FRUTA PRESENTE NO MAPA.
+        """
+        self.snake = Snake()
+        self.map = TileMap()
+        self.map_image = self.map.make()
+        self.fruits = []
 
-    def start(self):#Inicia o loop do jogo
+    def start(self):
+        """
+        Controla o loop de execução do jogo, e tambeém gerencia o tratamento de eventos e chamdas de funções dentro do
+        jogo.
+        """
         while self.game_loop:
             self.time.tick(60)
 
-            for event in pygame.event.get():#Controla os eventos do jogoc
+            for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.game_loop = False
 
             self.update()
 
     def add_fruit(self):
-        #Adiciona uma fruta periodicamente no mapa
+        """
+        Gera uma fruta nova no mapa e armazena na variavel 'fruits' da jogo
+        """
         if randint(0,150) == 5:
             self.fruits.append(Fruit(*self.screen_size))
 
     def player_fruit(self):
-        """Verifica a colisões do player com as frutas, que coleta a mesma a removendo do mapa e fazendo
-        a snake crecer"""
-        player = pygame.Rect(self.player.snake[0][0], self.player.snake[0][1], self.player.size[0], self.player.size[1])
+        """
+        Verifica se a colisões entre cabeça da snake com as frutas, caso a mesma exista, uma fruta será adicionada a
+        vareiavel 'fruit' pertencente a snake e sua velocidade será aumentada.
+        """
+        player = pygame.Rect(self.snake.snake[0][0], self.snake.snake[0][1], self.snake.size[0], self.snake.size[1])
         for fruit in self.fruits:
             if player.colliderect(fruit):
-                self.player.fruits += 1
-                self.player.velocity += 5
+                self.snake.fruits += 1
+                self.snake.velocity += 0.2
 
-                if self.player.velocity > 16:
-                    self.player.velocity = 16
+                if self.snake.velocity > 16:
+                    self.snake.velocity = 16
 
                 self.fruits.remove(fruit)
 
-
-    def update(self):#Atualiza todas as funçõies do mapa
-        self.add_fruit()
-        self.player.update(self.map.tiles)
-        self.player_fruit()
-        self.draw()
-
-    def draw(self):#Desenha os elementos do jogo(mapa, snake, frutas).
-
+    def draw(self):
+        """
+        Dresenha todos elementos que devem ser visto pelo jogador.
+        """
         self.screen.blit(self.map_image,(0,0))
 
         for fruit in self.fruits:
             pygame.draw.rect(self.screen,(255,0,75),fruit)
 
-        for x, y in self.player.snake:
-            rect = pygame.Rect(x,y, self.player.size[0], self.player.size[1])
+        for x, y in self.snake.snake:
+            rect = pygame.Rect(x, y, self.snake.size[0], self.snake.size[1])
             pygame.draw.rect(self.screen,(60,179,113),rect)
 
         pygame.display.update()
+
+    def update(self):
+        """
+        Responsavel por fazer a chamada de todas as funções que compõem as regras do jogo
+        """
+        self.add_fruit()
+        self.snake.update(self.map.tiles)
+        self.player_fruit()
+        self.draw()
 
 Game().start()
 
